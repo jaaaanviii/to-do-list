@@ -1,25 +1,140 @@
-To-Do List Application
-This project is a simple, command-line To-Do List application developed in C. Designed for beginners and anyone looking to work on task management utilities, this program enables users to manage daily tasks directly from the terminal. It’s lightweight, uses standard C libraries, and can run on any system with a C compiler.
+    #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-Features
-Add Multiple Tasks: Users can add multiple tasks at once with clear prompts. Each task has a description and an incomplete status by default, allowing users to track new tasks easily.
+#define MAX_TASKS 100
 
-View All Tasks: The application displays all tasks in an organized list format, showing each task's number, description, and completion status. It’s easy to review tasks and see which are done and which are pending.
+typedef struct {
+    char task[100];
+    int is_completed;
+} Task;
 
-Remove Tasks: With the remove function, users can specify tasks by their index to delete them from the list. The list updates immediately, helping users maintain only relevant tasks.
+void add_task(Task tasks[], int *task_count) {
+    if (*task_count == MAX_TASKS) {
+        printf("Task list is full.\n");
+        return;
+    }
 
-Save and Load: Task data is saved to a text file, ensuring that the task list persists between sessions. Each time the application is launched, it automatically loads previously saved tasks, so users can continue from where they left off.
+    int num_tasks;
+    printf("How many tasks would you like to add? ");
+    scanf("%d", &num_tasks);
 
-How to Use
-Compilation: Compile the code with a C compiler, e.g., gcc or clang.
-Execution: Run the compiled file from your terminal.
-Task Management: Use the interactive menu to add, view, remove, save, or exit.
-Project Benefits
-This application provides a hands-on learning experience for working with data structures (like arrays and structs), file handling, and user input in C. By building this project, developers get familiar with creating simple, menu-driven interfaces and handling file I/O operations to store data persistently.
+    if (*task_count + num_tasks > MAX_TASKS) {
+        printf("Adding %d tasks exceeds the maximum limit of %d. You can only add %d more tasks.\n",
+               num_tasks, MAX_TASKS, MAX_TASKS - *task_count);
+        num_tasks = MAX_TASKS - *task_count;
+    }
 
-Future Enhancements
-Planned updates include marking tasks as completed, filtering completed/incomplete tasks, and improving file handling to use more robust methods like binary files for larger data sets.
+    for (int i = 0; i < num_tasks; i++) {
+        printf("Enter task %d: ", i + 1);
+        scanf(" %[^\n]", tasks[*task_count].task); // Using %[^\n] to read a full line as a task
+        tasks[*task_count].is_completed = 0;
+        (*task_count)++;
+        printf("Task %d added.\n", i + 1);
+    }
+}
 
-Contributing
-Contributions are welcome, especially ideas for new features or code optimizations. If you’re interested, feel free to open a pull request or file an issue.
+void remove_task(Task tasks[], int *task_count) {
+    if (*task_count == 0) {
+        printf("No tasks to remove.\n");
+        return;
+    }
 
+    int index;
+    printf("Enter task index to remove: ");
+    scanf("%d", &index);
+
+    if (index < 1 || index > *task_count) {
+        printf("Invalid index.\n");
+        return;
+    }
+
+    for (int i = index - 1; i < *task_count - 1; i++) {
+        strcpy(tasks[i].task, tasks[i + 1].task);
+        tasks[i].is_completed = tasks[i + 1].is_completed;
+    }
+    (*task_count)--;
+    printf("Task removed.\n");
+}
+
+void view_tasks(Task tasks[], int task_count) {
+    if (task_count == 0) {
+        printf("No tasks to display.\n");
+        return;
+    }
+
+    printf("To-Do List:\n");
+    for (int i = 0; i < task_count; i++) {
+        printf("%d. %s %s\n", i + 1, tasks[i].task, tasks[i].is_completed ? "(Completed)" : "");
+    }
+}
+
+void save_tasks(Task tasks[], int task_count) {
+    FILE *fp = fopen("tasks.txt", "w");
+    if (fp == NULL) {
+        printf("Error saving tasks.\n");
+        return;
+    }
+
+    for (int i = 0; i < task_count; i++) {
+        fprintf(fp, "%s %d\n", tasks[i].task, tasks[i].is_completed);
+    }
+
+    fclose(fp);
+    printf("Tasks saved to file.\n");
+}
+
+void load_tasks(Task tasks[], int *task_count) {
+    FILE *fp = fopen("tasks.txt", "r");
+    if (fp == NULL) {
+        return;
+    }
+
+    *task_count = 0;
+    while (fscanf(fp, "%[^\n] %d", tasks[*task_count].task, &tasks[*task_count].is_completed) != EOF) {
+        (*task_count)++;
+    }
+
+    fclose(fp);
+}
+
+int main() {
+    Task tasks[MAX_TASKS];
+    int task_count = 0;
+
+    load_tasks(tasks, &task_count);
+
+    while (1) {
+        printf("\nTo-Do List\n");
+        printf("1. Add Task\n");
+        printf("2. Remove Task\n");
+        printf("3. View Tasks\n");
+        printf("4. Save Tasks\n");
+        printf("5. Exit\n");
+
+        int choice;
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                add_task(tasks, &task_count);
+                break;
+            case 2:
+                remove_task(tasks, &task_count);
+                break;
+            case 3:
+                view_tasks(tasks, task_count);
+                break;
+            case 4:
+                save_tasks(tasks, task_count);
+                break;
+            case 5:
+                exit(0);
+            default:
+                printf("Invalid choice.\n");
+        }
+    }
+
+    return 0;
+}
